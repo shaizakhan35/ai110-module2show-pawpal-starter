@@ -3,6 +3,7 @@
 Generated from diagrams/uml.mmd.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
@@ -15,7 +16,7 @@ class Task:
     priority: int
     pet_id: str
     is_recurring: bool = False
-    recurrence_days: list[str] = field(default_factory=list)
+    recurrence_days: int = 0  # day interval: 1 = daily, 7 = weekly
     is_completed: bool = False
 
     def mark_complete(self) -> None:
@@ -116,68 +117,99 @@ class Scheduler:
         """
         return [task for task in self.tasks if task.is_completed == completed]
 
-    def detect_conflicts(self) -> list[tuple[Task, Task]]:
-        """Return pairs of same-pet tasks scheduled within 30 minutes of each other.
+    def detect_conflicts(self) -> list[str]:
+        """Return warning messages for same-pet tasks scheduled at the same time.
 
-        Each pair is ``(earlier, later)``. A gap of exactly 30 minutes does not
-        count as a conflict.
+        Two tasks conflict when they belong to the same pet and share the exact
+        same ``scheduled_time``. This never raises; it returns a (possibly
+        empty) list of human-readable warning strings.
         """
-        conflicts: list[tuple[Task, Task]] = []
-        # Group tasks by pet, then compare every pair for the same pet.
+        by_slot: dict[tuple[str, datetime], list[Task]] = defaultdict(list)
+        for task in self.tasks:
+            by_slot[(task.pet_id, task.scheduled_time)].append(task)
+
+        warnings: list[str] = []
+        for (pet_id, when), tasks in by_slot.items():
+            if len(tasks) > 1:
+                types = ", ".join(f"'{task.task_type}'" for task in tasks)
+                time_str = when.strftime("%Y-%m-%d %H:%M")
+                warnings.append(
+                    f"Conflict for {pet_id} at {time_str}: "
+                    f"{types} are scheduled at the same time."
+                )
+        return warnings
+
+    def complete_task(self, task: Task) -> Task | None:
+        """Mark a task complete and, if recurring, queue its next occurrence.
+
+        When ``task.is_recurring`` is true and ``recurrence_days`` is a
+        positive interval (1 = daily, 7 = weekly), a fresh Task is created at
+        ``scheduled_time + timedelta(days=recurrence_days)``, appended to the
+        same pet's task list, and returned. The new occurrence stays recurring
+        so it will reschedule again when completed. Returns ``None`` when the
+        task is not recurring (nothing new is scheduled).
+        """
+        task.mark_complete()
+        if not task.is_recurring or task.recurrence_days <= 0:
+            return None
+        next_occurrence = Task(
+            task_type=task.task_type,
+            description=task.description,
+            scheduled_time=task.scheduled_time + timedelta(days=task.recurrence_days),
+            priority=task.priority,
+            pet_id=task.pet_id,
+            is_recurring=True,
+            recurrence_days=task.recurrence_days,
+        )
         for pet in self.pets:
-            pet_tasks = sorted(pet.tasks, key=lambda task: task.scheduled_time)
-            for i, task in enumerate(pet_tasks):
-                for other in pet_tasks[i + 1:]:
-                    # Tasks are time-sorted, so once one is >= 30 min away,
-                    # every later task is too — stop scanning this task.
-                    if other.scheduled_time - task.scheduled_time >= timedelta(minutes=30):
-                        break
-                    conflicts.append((task, other))
-        return conflicts
+            if pet.name == task.pet_id:
+                pet.add_task(next_occurrence)
+                break
+        return next_occurrence
 
     def generate_recurring_tasks(self) -> list[Task]:
         """Expand recurring tasks into concrete occurrences over the next 7 days.
 
-        New occurrences are appended to the matching pet's task list and also
-        returned. This is idempotent: re-running it will not create duplicate
-        occurrences (matched by pet, time, and task type).
+        ``recurrence_days`` is a day interval (1 = daily, 7 = weekly).
+        Occurrences are generated forward from each source task's scheduled
+        time up to 7 days out, appended to the matching pet's task list, and
+        also returned. This is idempotent: re-running it will not create
+        duplicate occurrences (matched by pet, time, and task type).
         """
         pets_by_id = {pet.name: pet for pet in self.pets}
         # Snapshot the source tasks and existing occurrences up front so that
         # appending new tasks below does not feed back into the loop.
         source_tasks = [
             task for task in self.tasks
-            if task.is_recurring and task.recurrence_days
+            if task.is_recurring and task.recurrence_days > 0
         ]
         existing = {
             (task.pet_id, task.scheduled_time, task.task_type)
             for task in self.tasks
         }
         generated: list[Task] = []
+        horizon = timedelta(days=7)
         for task in source_tasks:
-            target_days = {day.lower() for day in task.recurrence_days}
-            # Expand across the next 7 days, including the original day.
-            for offset in range(0, 7):
-                occurrence_time = task.scheduled_time + timedelta(days=offset)
-                if occurrence_time.strftime("%A").lower() not in target_days:
-                    continue
+            step = timedelta(days=task.recurrence_days)
+            occurrence_time = task.scheduled_time + step
+            while occurrence_time - task.scheduled_time <= horizon:
                 key = (task.pet_id, occurrence_time, task.task_type)
-                if key in existing:
-                    continue
-                existing.add(key)
-                new_task = Task(
-                    task_type=task.task_type,
-                    description=task.description,
-                    scheduled_time=occurrence_time,
-                    priority=task.priority,
-                    pet_id=task.pet_id,
-                    is_recurring=False,
-                    recurrence_days=[],
-                )
-                generated.append(new_task)
-                pet = pets_by_id.get(task.pet_id)
-                if pet is not None:
-                    pet.add_task(new_task)
+                if key not in existing:
+                    existing.add(key)
+                    new_task = Task(
+                        task_type=task.task_type,
+                        description=task.description,
+                        scheduled_time=occurrence_time,
+                        priority=task.priority,
+                        pet_id=task.pet_id,
+                        is_recurring=False,
+                        recurrence_days=0,
+                    )
+                    generated.append(new_task)
+                    pet = pets_by_id.get(task.pet_id)
+                    if pet is not None:
+                        pet.add_task(new_task)
+                occurrence_time += step
         return generated
 
     def todays_tasks(self) -> list[Task]:

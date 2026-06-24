@@ -27,7 +27,7 @@ classDiagram
         +datetime scheduled_time
         +int priority
         +bool is_recurring
-        +list~str~ recurrence_days
+        +int recurrence_days
         +bool is_completed
         +mark_complete() None
     }
@@ -38,7 +38,8 @@ classDiagram
         +sort_by_time() list~Task~
         +sort_by_priority() list~Task~
         +filter_by_date(date) list~Task~
-        +detect_conflicts() list~Task~
+        +detect_conflicts() list~str~
+        +complete_task(Task) Task
         +generate_recurring_tasks() list~Task~
         +show_daily_summary() str
     }

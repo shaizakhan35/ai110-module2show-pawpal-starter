@@ -26,12 +26,22 @@ def build_demo() -> Owner:
     medication = Task("Medication", "Allergy pill with treat", at(12, 15), 1, mochi.name)
     walk_evening = Task("Walk", "Evening stroll", at(20, 0), 3, rex.name)
     play = Task("Play", "Laser pointer session", at(10, 45), 2, mochi.name)
+    # A daily recurring task: completing it schedules the next day's occurrence.
+    daily_feed = Task(
+        "Feed", "Morning kibble", at(7, 0), 1, rex.name,
+        is_recurring=True, recurrence_days=1,
+    )
+
+    # Two tasks for the same pet at the same time -> a scheduling conflict.
+    play_conflict = Task("Play", "Fetch in the yard", at(10, 45), 2, mochi.name)
 
     rex.add_task(feed_evening)
     rex.add_task(walk_morning)
     mochi.add_task(medication)
     rex.add_task(walk_evening)
     mochi.add_task(play)
+    rex.add_task(daily_feed)
+    mochi.add_task(play_conflict)
 
     # Mark a couple complete so filter_by_status() has both groups to show.
     walk_morning.mark_complete()
@@ -101,10 +111,57 @@ def verify_scheduler_methods(owner: Owner) -> None:
     print("=" * width)
 
 
+def verify_recurring_task(owner: Owner) -> None:
+    """Complete a recurring task and show its next occurrence being created."""
+    scheduler = Scheduler(pets=owner.get_pets())
+    width = 50
+
+    print("\n" + "=" * width)
+    print("Verifying recurring task logic".center(width))
+    print("=" * width)
+
+    # Find the daily recurring task added in build_demo().
+    recurring = next(
+        task for task in scheduler.tasks
+        if task.is_recurring and not task.is_completed
+    )
+
+    print("\nRecurring task before completion:")
+    print(f"  {_format_task(recurring)}  (repeats every {recurring.recurrence_days} day[s])")
+
+    next_occurrence = scheduler.complete_task(recurring)
+
+    print("\nAfter complete_task() - original is marked done:")
+    print(f"  {_format_task(recurring)}")
+    print("\nA new occurrence was scheduled automatically:")
+    print(f"  {_format_task(next_occurrence)}")
+    print("=" * width)
+
+
+def verify_conflicts(owner: Owner) -> None:
+    """Print any scheduling-conflict warnings detected by the scheduler."""
+    scheduler = Scheduler(pets=owner.get_pets())
+    width = 50
+
+    print("\n" + "=" * width)
+    print("Checking for scheduling conflicts".center(width))
+    print("=" * width)
+
+    warnings = scheduler.detect_conflicts()
+    if not warnings:
+        print("No conflicts found.")
+    else:
+        for warning in warnings:
+            print(f"  ! {warning}")
+    print("=" * width)
+
+
 def main() -> None:
     owner = build_demo()
     print_todays_schedule(owner)
     verify_scheduler_methods(owner)
+    verify_recurring_task(owner)
+    verify_conflicts(owner)
 
 
 if __name__ == "__main__":

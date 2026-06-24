@@ -97,9 +97,11 @@ else:
             "Priority (1 = highest)", min_value=1, max_value=5, value=1
         )
         is_recurring = st.checkbox("Recurring")
-        recurrence_days = st.multiselect(
-            "Recurrence days",
-            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        recurrence_days = st.number_input(
+            "Repeat every N days (1 = daily, 7 = weekly)",
+            min_value=0,
+            max_value=365,
+            value=0,
         )
         if st.form_submit_button("Add Task"):
             pet = pets[pet_index]
@@ -111,7 +113,7 @@ else:
                     priority=int(priority),
                     pet_id=pet.name,
                     is_recurring=is_recurring,
-                    recurrence_days=recurrence_days,
+                    recurrence_days=int(recurrence_days),
                 )
             )
             st.success(f"Added task '{description}' to {pet.name}")
