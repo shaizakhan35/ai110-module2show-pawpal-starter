@@ -1,0 +1,55 @@
+classDiagram
+    %% PawPal+ class diagram
+
+    class Owner {
+        +str name
+        +str email
+        +list~Pet~ pets
+        +add_pet(pet) None
+        +remove_pet(pet) None
+        +get_pets() list~Pet~
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +str breed
+        +int age
+        +list~Task~ tasks
+        +add_task(task) None
+        +get_tasks() list~Task~
+        +get_pending_tasks() list~Task~
+    }
+
+    class Task {
+        +str task_type
+        +str description
+        +datetime scheduled_time
+        +int priority
+        +str pet_id
+        +bool is_recurring
+        +int recurrence_days
+        +bool is_completed
+        +mark_complete() None
+    }
+
+    class Scheduler {
+        +list~Pet~ pets
+        +list~Task~ tasks$
+        +sort_by_time() list~Task~
+        +sort_by_priority() list~Task~
+        +filter_by_date(target) list~Task~
+        +filter_by_pet(pet_name) list~Task~
+        +filter_by_status(completed) list~Task~
+        +detect_conflicts() list~str~
+        +complete_task(task) Task|None
+        +generate_recurring_tasks() list~Task~
+        +todays_tasks() list~Task~
+        +show_daily_summary() str
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Pet "1" *-- "*" Task : has
+    Scheduler "1" --> "*" Pet : references
+    Scheduler ..> Task : derives from pets
+    Task ..> Pet : pet_id -> Pet.name

@@ -143,15 +143,33 @@ st.divider()
 # Build Schedule
 # ---------------------------------------------------------------------------
 st.subheader("Build Schedule")
-if st.button("Generate daily summary"):
+if st.button("Build Schedule"):
     st.text(scheduler.show_daily_summary())
 
+    # Conflict warnings: detect_conflicts() returns ready-to-display strings,
+    # one per same-pet, same-time collision.
     conflicts = scheduler.detect_conflicts()
     if conflicts:
-        st.warning("Conflicting tasks (scheduled within 30 minutes for the same pet):")
-        for earlier, later in conflicts:
-            st.write(
-                f"- {earlier.pet_id}: {earlier.task_type} at "
-                f"{earlier.scheduled_time.strftime('%H:%M')} conflicts with "
-                f"{later.task_type} at {later.scheduled_time.strftime('%H:%M')}"
+        for message in conflicts:
+            st.warning(message)
+    else:
+        st.success("No scheduling conflicts found.")
+
+    # Full schedule, sorted chronologically (priority breaks ties).
+    sorted_tasks = scheduler.sort_by_time()
+    if sorted_tasks:
+        with st.container():
+            st.write("Sorted schedule:")
+            st.table(
+                [
+                    {
+                        "time": t.scheduled_time.strftime("%Y-%m-%d %H:%M"),
+                        "pet": t.pet_id,
+                        "type": t.task_type,
+                        "description": t.description,
+                        "priority": t.priority,
+                        "done": t.is_completed,
+                    }
+                    for t in sorted_tasks
+                ]
             )
