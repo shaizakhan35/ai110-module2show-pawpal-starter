@@ -147,7 +147,9 @@ if st.button("Generate daily summary"):
     conflicts = scheduler.detect_conflicts()
     if conflicts:
         st.warning("Conflicting tasks (scheduled within 30 minutes for the same pet):")
-        for t in conflicts:
+        for earlier, later in conflicts:
             st.write(
-                f"- {t.pet_id}: {t.task_type} at {t.scheduled_time.strftime('%H:%M')}"
+                f"- {earlier.pet_id}: {earlier.task_type} at "
+                f"{earlier.scheduled_time.strftime('%H:%M')} conflicts with "
+                f"{later.task_type} at {later.scheduled_time.strftime('%H:%M')}"
             )
