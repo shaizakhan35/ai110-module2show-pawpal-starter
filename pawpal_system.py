@@ -4,7 +4,7 @@ Generated from diagrams/uml.mmd. Method bodies are stubs only.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 @dataclass
@@ -19,7 +19,7 @@ class Task:
     is_completed: bool = False
 
     def mark_complete(self) -> None:
-        pass
+        self.is_completed = True
 
 
 @dataclass
@@ -31,13 +31,13 @@ class Pet:
     tasks: list[Task] = field(default_factory=list)
 
     def add_task(self, task: Task) -> None:
-        pass
+        self.tasks.append(task)
 
     def get_tasks(self) -> list[Task]:
-        pass
+        return self.tasks
 
     def get_pending_tasks(self) -> list[Task]:
-        pass
+        return [task for task in self.tasks if not task.is_completed]
 
 
 class Owner:
@@ -47,13 +47,13 @@ class Owner:
         self.pets = pets if pets is not None else []
 
     def add_pet(self, pet: Pet) -> None:
-        pass
+        self.pets.append(pet)
 
     def remove_pet(self, pet: Pet) -> None:
-        pass
+        self.pets.remove(pet)
 
     def get_pets(self) -> list[Pet]:
-        pass
+        return self.pets
 
 
 class Scheduler:
@@ -66,19 +66,72 @@ class Scheduler:
         return [task for pet in self.pets for task in pet.tasks]
 
     def sort_by_time(self) -> list[Task]:
-        pass
+        return sorted(self.tasks, key=lambda task: task.scheduled_time)
 
     def sort_by_priority(self) -> list[Task]:
-        pass
+        return sorted(self.tasks, key=lambda task: task.priority)
 
     def filter_by_date(self, date: datetime) -> list[Task]:
-        pass
+        return [
+            task for task in self.tasks
+            if task.scheduled_time.date() == date.date()
+        ]
 
     def detect_conflicts(self) -> list[Task]:
-        pass
+        conflicts: list[Task] = []
+        # Group tasks by pet, then compare every pair for the same pet.
+        for pet in self.pets:
+            pet_tasks = sorted(pet.tasks, key=lambda task: task.scheduled_time)
+            for i, task in enumerate(pet_tasks):
+                for other in pet_tasks[i + 1:]:
+                    gap = abs(other.scheduled_time - task.scheduled_time)
+                    if gap < timedelta(minutes=30):
+                        if task not in conflicts:
+                            conflicts.append(task)
+                        if other not in conflicts:
+                            conflicts.append(other)
+        return conflicts
 
     def generate_recurring_tasks(self) -> list[Task]:
-        pass
+        weekday_names = [
+            "Monday", "Tuesday", "Wednesday", "Thursday",
+            "Friday", "Saturday", "Sunday",
+        ]
+        generated: list[Task] = []
+        for task in self.tasks:
+            if not task.is_recurring or not task.recurrence_days:
+                continue
+            target_days = {day.lower() for day in task.recurrence_days}
+            # Expand into the next 7 days following the original scheduled time.
+            for offset in range(1, 8):
+                occurrence_time = task.scheduled_time + timedelta(days=offset)
+                if weekday_names[occurrence_time.weekday()].lower() in target_days:
+                    generated.append(
+                        Task(
+                            task_type=task.task_type,
+                            description=task.description,
+                            scheduled_time=occurrence_time,
+                            priority=task.priority,
+                            pet_id=task.pet_id,
+                            is_recurring=False,
+                            recurrence_days=[],
+                        )
+                    )
+        return generated
 
     def show_daily_summary(self) -> str:
-        pass
+        today = datetime.now()
+        todays_tasks = self.filter_by_date(today)
+        todays_tasks.sort(key=lambda task: task.scheduled_time)
+        header = f"Daily Summary for {today.strftime('%Y-%m-%d')}"
+        if not todays_tasks:
+            return f"{header}\nNo tasks scheduled for today."
+        lines = [header]
+        for task in todays_tasks:
+            status = "done" if task.is_completed else "pending"
+            time_str = task.scheduled_time.strftime("%H:%M")
+            lines.append(
+                f"[{status}] {time_str} - {task.task_type}: "
+                f"{task.description} (pet {task.pet_id}, priority {task.priority})"
+            )
+        return "\n".join(lines)
