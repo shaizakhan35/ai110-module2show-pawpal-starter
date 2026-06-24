@@ -15,7 +15,7 @@ My initial UML design included four classes. Owner holds owner identity and main
 
 The AI flagged two problems.
 Change 1: Task had no way to identify its pet. I added pet_id: str to Task. Now detect_conflicts() and show_daily_summary() can group tasks by pet.
-Change 2: Scheduler kept its own tasks list separate from Pet.tasks. This meant two copies of the same data that could drift out of sync. I replaced it with a @property that flattens tasks from all pets. Now pets are the single source of truth.
+Change 2: Scheduler kept its own tasks list separate from Pet.tasks. This meant two copies of the same data that could drift out of sync. I replaced it with a property that flattens tasks from all pets. Now pets are the single source of truth.
 ---
 
 ## 2. Scheduling Logic and Tradeoffs
@@ -59,6 +59,7 @@ The AI rewrote my conflict detection from a 30-minute overlap check to exact sam
 - What behaviors did you test?
 - Why were these tests important?
 I tested the five behaviors most likely to break quietly: marking a task complete, adding a task to a pet, sorting by time, generating the next occurrence of a recurring task, and flagging a scheduling conflict. These mattered because the whole app depends on them as if sorting is broken the schedule looks wrong, if recurrence is broken tasks just disappear after completion.
+
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
