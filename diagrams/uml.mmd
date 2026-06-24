@@ -1,15 +1,49 @@
 classDiagram
-    %% Replace the placeholders below with your actual classes, attributes, methods, and relationships.
-    %% Keep this file updated so it matches your final implementation.
+    %% PawPal+ class diagram
 
-    class ClassName {
-        +type attribute
-        +method() returnType
+    class Owner {
+        +str name
+        +str email
+        +list~Pet~ pets
+        +add_pet(pet) None
+        +remove_pet(pet) None
+        +get_pets() list~Pet~
     }
 
-    class AnotherClass {
-        +type attribute
-        +method() returnType
+    class Pet {
+        +str name
+        +str species
+        +str breed
+        +int age
+        +list~Task~ tasks
+        +add_task(task) None
+        +get_tasks() list~Task~
+        +get_pending_tasks() list~Task~
     }
 
-    ClassName --> AnotherClass : relationship
+    class Task {
+        +str task_type
+        +str description
+        +datetime scheduled_time
+        +int priority
+        +bool is_recurring
+        +list~str~ recurrence_days
+        +bool is_completed
+        +mark_complete() None
+    }
+
+    class Scheduler {
+        +list~Task~ tasks
+        +list~Pet~ pets
+        +sort_by_time() list~Task~
+        +sort_by_priority() list~Task~
+        +filter_by_date(date) list~Task~
+        +detect_conflicts() list~Task~
+        +generate_recurring_tasks() list~Task~
+        +show_daily_summary() str
+    }
+
+    Owner "1" --> "*" Pet : owns
+    Pet "1" --> "*" Task : has
+    Scheduler "1" o-- "*" Task : manages
+    Scheduler "1" --> "*" Pet : references
