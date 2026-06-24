@@ -13,6 +13,9 @@ My initial UML design included four classes. Owner holds owner identity and main
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
 
+The AI flagsged two problems.
+Change 1: Task had no way to identify its pet. I added pet_id: str to Task. Now detect_conflicts() and show_daily_summary() can group tasks by pet.
+Change 2: Scheduler kept its own tasks list separate from Pet.tasks. This meant two copies of the same data that could drift out of sync. I replaced it with a @property that flattens tasks from all pets. Now pets are the single source of truth.
 ---
 
 ## 2. Scheduling Logic and Tradeoffs

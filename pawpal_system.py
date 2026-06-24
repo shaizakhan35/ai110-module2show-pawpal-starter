@@ -13,6 +13,7 @@ class Task:
     description: str
     scheduled_time: datetime
     priority: int
+    pet_id: str
     is_recurring: bool = False
     recurrence_days: list[str] = field(default_factory=list)
     is_completed: bool = False
@@ -56,9 +57,13 @@ class Owner:
 
 
 class Scheduler:
-    def __init__(self, tasks: list[Task] | None = None, pets: list[Pet] | None = None) -> None:
-        self.tasks = tasks if tasks is not None else []
+    def __init__(self, pets: list[Pet] | None = None) -> None:
         self.pets = pets if pets is not None else []
+
+    @property
+    def tasks(self) -> list[Task]:
+        """Tasks derived from all pets (single source of truth)."""
+        return [task for pet in self.pets for task in pet.tasks]
 
     def sort_by_time(self) -> list[Task]:
         pass
