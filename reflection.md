@@ -6,6 +6,7 @@
 
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
+My initial UML design included four classes. Owner holds owner identity and maintains a collection of pets. Pet represents a single animal with attributes like breed and age, and keeps its own list of tasks. Task is a dataclass for a single care event and it stores what the task is, when it's scheduled, its priority, and whether it recurs. Scheduler is the central coordinator that holds all tasks and pets and exposes the algorithmic methods for sorting, filtering, conflict detection, and recurring task generation.
 
 **b. Design changes**
 
