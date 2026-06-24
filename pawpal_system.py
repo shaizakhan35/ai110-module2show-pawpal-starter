@@ -19,6 +19,7 @@ class Task:
     is_completed: bool = False
 
     def mark_complete(self) -> None:
+        """Mark this task as completed."""
         self.is_completed = True
 
 
@@ -31,33 +32,41 @@ class Pet:
     tasks: list[Task] = field(default_factory=list)
 
     def add_task(self, task: Task) -> None:
+        """Add a task to this pet's task list."""
         self.tasks.append(task)
 
     def get_tasks(self) -> list[Task]:
+        """Return all tasks for this pet."""
         return self.tasks
 
     def get_pending_tasks(self) -> list[Task]:
+        """Return this pet's tasks that are not yet completed."""
         return [task for task in self.tasks if not task.is_completed]
 
 
 class Owner:
     def __init__(self, name: str, email: str, pets: list[Pet] | None = None) -> None:
+        """Initialize an owner with a name, email, and optional list of pets."""
         self.name = name
         self.email = email
         self.pets = pets if pets is not None else []
 
     def add_pet(self, pet: Pet) -> None:
+        """Add a pet to this owner's list of pets."""
         self.pets.append(pet)
 
     def remove_pet(self, pet: Pet) -> None:
+        """Remove a pet from this owner's list of pets."""
         self.pets.remove(pet)
 
     def get_pets(self) -> list[Pet]:
+        """Return all pets belonging to this owner."""
         return self.pets
 
 
 class Scheduler:
     def __init__(self, pets: list[Pet] | None = None) -> None:
+        """Initialize the scheduler with an optional list of pets."""
         self.pets = pets if pets is not None else []
 
     @property
@@ -66,18 +75,22 @@ class Scheduler:
         return [task for pet in self.pets for task in pet.tasks]
 
     def sort_by_time(self) -> list[Task]:
+        """Return all tasks sorted by their scheduled time."""
         return sorted(self.tasks, key=lambda task: task.scheduled_time)
 
     def sort_by_priority(self) -> list[Task]:
+        """Return all tasks sorted by priority."""
         return sorted(self.tasks, key=lambda task: task.priority)
 
     def filter_by_date(self, date: datetime) -> list[Task]:
+        """Return tasks scheduled on the same calendar date as the given date."""
         return [
             task for task in self.tasks
             if task.scheduled_time.date() == date.date()
         ]
 
     def detect_conflicts(self) -> list[Task]:
+        """Return tasks for the same pet scheduled within 30 minutes of each other."""
         conflicts: list[Task] = []
         # Group tasks by pet, then compare every pair for the same pet.
         for pet in self.pets:
@@ -93,6 +106,7 @@ class Scheduler:
         return conflicts
 
     def generate_recurring_tasks(self) -> list[Task]:
+        """Expand recurring tasks into concrete occurrences over the next 7 days."""
         weekday_names = [
             "Monday", "Tuesday", "Wednesday", "Thursday",
             "Friday", "Saturday", "Sunday",
@@ -120,6 +134,7 @@ class Scheduler:
         return generated
 
     def show_daily_summary(self) -> str:
+        """Return a formatted text summary of today's tasks."""
         today = datetime.now()
         todays_tasks = self.filter_by_date(today)
         todays_tasks.sort(key=lambda task: task.scheduled_time)
